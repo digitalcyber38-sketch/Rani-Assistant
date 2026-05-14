@@ -24,11 +24,13 @@ if prompt := st.chat_input("Rani se puchiye..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 404 MASTER FIX: Stable v1 version aur gemini-pro model
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
+    # 100% Working URL Format for 2026
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     payload = {
-        "contents": [{"parts": [{"text": f"Tera naam Rani hai. Tu Navin ki AI assistant hai. Hindi mein jawab de: {prompt}"}]}]
+        "contents": [{
+            "parts": [{"text": f"Tera naam Rani hai. Tu Navin ki AI assistant hai. Hindi mein jawab de: {prompt}"}]
+        }]
     }
 
     try:
@@ -41,19 +43,20 @@ if prompt := st.chat_input("Rani se puchiye..."):
                 st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
         else:
-            # Agar phir bhi fail ho, toh 1.5-flash ko v1 ke saath try karein
-            st.warning("Model switch kar rahi hoon...")
-            url_flash = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
-            response_flash = requests.post(url_flash, json=payload)
+            # Agar flash na chale, toh gemini-1.5-pro try karein (Different URL structure)
+            st.warning("Rani: Thoda intezar kijiye boss, main connect ho rahi hoon...")
+            url_alt = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={api_key}"
+            response_alt = requests.post(url_alt, json=payload)
             
-            if response_flash.status_code == 200:
-                answer = response_flash.json()['candidates'][0]['content']['parts'][0]['text']
+            if response_alt.status_code == 200:
+                answer = response_alt.json()['candidates'][0]['content']['parts'][0]['text']
                 with st.chat_message("assistant"):
                     st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             else:
-                st.error(f"Rani: Boss, Google ka server mana kar raha hai. Status: {response.status_code}")
-                st.write("Full Error Data:", result)
+                st.error(f"Rani: Boss, Google ka server rasta nahi de raha. Error Code: {response.status_code}")
+                st.write("Kya galat hai? Ye dekhiye:", result)
+                
     except Exception as e:
         st.error(f"Technical Error: {e}")
         
