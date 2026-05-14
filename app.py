@@ -3,38 +3,43 @@ import requests
 
 st.set_page_config(page_title="Rani Assistant", page_icon="💃")
 
-# API Key check
+# Secrets check (Make sure GEMINI_API_KEY is in your Streamlit secrets)
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
 else:
-    st.error("Rani: Navin, Secrets mein API key nahi mil rahi!")
+    st.error("Navin, pehle Settings -> Secrets mein API key daalo!")
     st.stop()
 
 st.title("💃 Rani AI Assistant")
+st.caption("Navin ki apni pyaari Rani")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Chat History display
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Rani se puchiye..."):
+if prompt := st.chat_input("Rani se kuch puchiye..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Naya Endpoint URL (v1beta/models/gemini-1.5-flash)
+    # 404 FIX: Sahi model name 'gemini-1.5-flash' hai
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
+    headers = {'Content-Type': 'application/json'}
+    
+    # Rani ki personality setup
     payload = {
         "contents": [{
-            "parts": [{"text": f"Tera naam Rani hai. Tu Navin ki AI assistant hai. Hindi mein baat kar: {prompt}"}]
+            "parts": [{"text": f"Tera naam Rani hai. Tu Navin ki pyari assistant hai. Hindi/Bhojpuri mix mein baat kar. Sawal: {prompt}"}]
         }]
     }
 
     try:
-        response = requests.post(url, json=payload)
+        response = requests.post(url, headers=headers, json=payload)
         result = response.json()
 
         if response.status_code == 200:
@@ -43,7 +48,9 @@ if prompt := st.chat_input("Rani se puchiye..."):
                 st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
         else:
-            st.error(f"Rani: Arre boss, Google ne mana kar diya (Error {response.status_code}). Jawab: {result}")
+            st.error(f"Rani: Maaf kijiyega boss, Google error de raha hai. Status: {response.status_code}")
+            st.json(result) # Error detail dekhne ke liye
+            
     except Exception as e:
-        st.error(f"Rani: Technical glitch! {e}")
-        
+        st.error(f"Technical error: {e}")
+            
