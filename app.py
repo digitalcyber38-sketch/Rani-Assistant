@@ -15,19 +15,19 @@ st.title("💃 Rani AI Assistant")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Chat history
+# Chat history dikhana
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Rani se puchiye..."):
+if prompt := st.chat_input("Rani se kuch puchiye..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 404 FIX: Sahi URL aur Model format
-    # Hum 'gemini-1.5-flash' ko models/ ke bina bhej rahe hain agar 404 aaye
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # 404 SOLUTION: Model name aur version ka naya format
+    # Hum 'gemini-1.5-flash-latest' try kar rahe hain jo sabse stable hai
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
     
     payload = {
         "contents": [{
@@ -45,19 +45,18 @@ if prompt := st.chat_input("Rani se puchiye..."):
                 st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
         else:
-            # Agar phir bhi 404 aaye, toh ye dusra rasta (Backup Model)
-            st.warning("Rani thoda rasta bhatak gayi, dusre raste se aa rahi hai...")
-            url_backup = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
-            response_backup = requests.post(url_backup, json=payload)
+            # Agar phir bhi model na mile, toh hum 'gemini-pro' try karenge (Legacy version)
+            url_alt = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+            response_alt = requests.post(url_alt, json=payload)
             
-            if response_backup.status_code == 200:
-                answer = response_backup.json()['candidates'][0]['content']['parts'][0]['text']
+            if response_alt.status_code == 200:
+                answer = response_alt.json()['candidates'][0]['content']['parts'][0]['text']
                 with st.chat_message("assistant"):
                     st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             else:
-                st.error(f"Rani: Arre boss, Google ke server par model nahi mil raha. Error: {response.status_code}")
-                st.json(result)
+                st.error(f"Rani: Arre boss, Google ke server par rasta nahi mil raha (404).")
+                st.write("Debug Info:", result)
     except Exception as e:
         st.error(f"Technical Glitch: {e}")
         
