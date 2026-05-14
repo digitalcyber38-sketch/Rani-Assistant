@@ -1,19 +1,15 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
+import json
 
 st.set_page_config(page_title="Rani Assistant", page_icon="💃")
 
 # Secrets se API Key lena
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
 except:
     st.error("Rani: Navin, Secrets mein API key missing hai!")
     st.stop()
-
-# Sabse stable model name use karna
-# 'models/gemini-1.5-flash' ya sirf 'gemini-1.5-flash'
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -31,23 +27,30 @@ if prompt := st.chat_input("Rani se kuch puchiye..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
+    # Direct API Call (No library dependency)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    headers = {'Content-Type': 'application/json'}
+    
+    instruction = "Tera naam Rani hai. Tu Navin ki personal AI assistant hai. Tu ek pyari ladki ki tarah Hindi mein baat karti hai."
+    
+    data = {
+        "contents": [{
+            "parts": [{"text": f"{instruction}\n\nNavin: {prompt}"}]
+        }]
+    }
+    
     try:
-        # Instruction ko context mein dena
-        context = "Tera naam Rani hai. Tu Navin ki pyari AI assistant hai. Hindi mein baat kar."
-        response = model.generate_content(f"{context}\n\nUser: {prompt}")
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        result = response.json()
+        
+        # Jawab nikalna
+        answer = result['candidates'][0]['content']['parts'][0]['text']
         
         with st.chat_message("assistant"):
-            st.markdown(response.text)
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
+            st.markdown(answer)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+        
     except Exception as e:
-        # Agar phir bhi 404 aaye toh alternate model try karna
-        st.warning("Rani thoda busy hai, dobara koshish kar rahi hai...")
-        try:
-            alt_model = genai.GenerativeModel('gemini-pro')
-            response = alt_model.generate_content(prompt)
-            with st.chat_message("assistant"):
-                st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except:
-            st.error(f"Rani: Maaf kijiyega boss, technical issue hai: {e}")
-            
+        st.error(f"Rani: Maaf kijiyega boss, system overload hai. Ek baar refresh kijiye. Error: {e}")
+        
