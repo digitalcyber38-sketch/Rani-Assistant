@@ -1,43 +1,48 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Page ki setting (Phone par accha dikhne ke liye)
+# Page setup
 st.set_page_config(page_title="Rani Assistant", page_icon="💃")
 
-# Rani ka dimag setup (Aapki API key ke saath)
+# API Setup
 genai.configure(api_key="AIzaSyBPUd0skwt3MLW2sQ7whg_6t0asG0SFXF8")
 
-# Rani ki personality set karna
+# Rani ki identity
 instruction = (
     "Tera naam Rani hai. Tu Navin ki personal AI assistant hai. "
-    "Tu ek bahut pyari aur samajhdar ladki ki tarah baat karti hai. "
-    "Navin tera boss hai, uski har kaam mein madad karna aur hamesha khush rehna."
+    "Tu ek bahut pyari ladki ki tarah baat karti hai. "
+    "Navin tera boss hai, uski har kaam mein madad karna."
 )
 
+# Yahan humne model name badal kar 'gemini-pro' kar diya hai stability ke liye
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=instruction
+    model_name="gemini-pro"
 )
 
-# Chat history yaad rakhne ke liye
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
+# Chat history handle karne ke liye simple tareeka
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 st.title("💃 Rani Assistant")
-st.caption("Navin ki apni AI Rani")
 
-# Chat messages ko screen par dikhana
-for message in st.session_state.chat_session.history:
-    role = "user" if message.role == "user" else "assistant"
-    with st.chat_message(role):
-        st.markdown(message.parts[0].text)
+# Messages dikhana
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# User se input lena
+# Input aur response
 if prompt := st.chat_input("Rani se kuch puchiye..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # Rani ka jawab
-    with st.chat_message("assistant"):
-        response = st.session_state.chat_session.send_message(prompt)
-        st.markdown(response.text)
+    try:
+        # Instruction ko prompt ke saath jodna taaki wo hamesha Rani bani rahe
+        full_prompt = f"{instruction}\n\nUser: {prompt}"
+        response = model.generate_content(full_prompt)
+        
+        with st.chat_message("assistant"):
+            st.markdown(response.text)
+        st.session_state.messages.append({"role": "assistant", "content": response.text})
+    except Exception as e:
+        st.error(f"Opps! Kuch dikkat hai: {e}")
