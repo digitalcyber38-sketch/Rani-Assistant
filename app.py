@@ -27,30 +27,37 @@ if prompt := st.chat_input("Rani se kuch puchiye..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # Direct API Call (No library dependency)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # Updated API URL
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     
-    instruction = "Tera naam Rani hai. Tu Navin ki personal AI assistant hai. Tu ek pyari ladki ki tarah Hindi mein baat karti hai."
-    
-    data = {
+    # Rani ki personality
+    payload = {
         "contents": [{
-            "parts": [{"text": f"{instruction}\n\nNavin: {prompt}"}]
-        }]
+            "parts": [{"text": f"Tera naam Rani hai. Tu Navin ki AI assistant hai. Hindi mein baat kar. User ka sawal: {prompt}"}]
+        }],
+        "safetySettings": [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
     }
     
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, headers=headers, json=payload)
         result = response.json()
         
-        # Jawab nikalna
-        answer = result['candidates'][0]['content']['parts'][0]['text']
-        
-        with st.chat_message("assistant"):
-            st.markdown(answer)
-        st.session_state.messages.append({"role": "assistant", "content": answer})
-        
+        # Check if response has content
+        if 'candidates' in result and len(result['candidates']) > 0:
+            answer = result['candidates'][0]['content']['parts'][0]['text']
+            with st.chat_message("assistant"):
+                st.markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+        else:
+            st.error(f"Rani: Arre boss, Google ne response block kar diya ya galat key hai. Error: {result}")
+            
     except Exception as e:
-        st.error(f"Rani: Maaf kijiyega boss, system overload hai. Ek baar refresh kijiye. Error: {e}")
+        st.error(f"Rani: Maaf kijiyega boss, kuch technical dikkat hai: {e}")
         
